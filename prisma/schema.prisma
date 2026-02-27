@@ -1,0 +1,114 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Card {
+  id                String   @id @default(cuid())
+  scryfallId        String?  @unique @map("scryfall_id")
+  name              String
+  setCode           String?  @map("set_code")
+  collectorNumber   String?  @map("collector_number")
+  manaCost          String?  @map("mana_cost")
+  cmc               Float?   @map("cmc")
+  typeLine          String?  @map("type_line")
+  oracleText        String?  @map("oracle_text")
+  colors            String?
+  colorIdentity     String?  @map("color_identity")
+  power             String?
+  toughness         String?
+  edhrecRank        Int?     @map("edhrec_rank")
+  usd               String?
+  usdFoil          String?  @map("usd_foil")
+  eur               String?
+  imageUris        String?  @map("image_uris")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  commanderFor      Commander[]
+  deckCards        DeckCard[]
+  cardStats        CardStat[]
+
+  @@index([name])
+  @@index([scryfallId])
+  @@map("cards")
+}
+
+model Commander {
+  id              String   @id @default(cuid())
+  cardId          String   @map("card_id")
+  colorIdentity   String?  @map("color_identity")
+  deckCount       Int      @default(0) @map("deck_count")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  card            Card     @relation(fields: [cardId], references: [id])
+  decks           Deck[]
+  cardStats       CardStat[]
+
+  @@unique([cardId])
+  @@index([deckCount])
+  @@map("commanders")
+}
+
+model Deck {
+  id              String   @id @default(cuid())
+  moxfieldId      String   @unique @map("moxfield_id")
+  name            String
+  commanderId     String   @map("commander_id")
+  colors          String?
+  deckFormat      String   @default("brawl") @map("deck_format")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  commander       Commander @relation(fields: [commanderId], references: [id])
+  deckCards       DeckCard[]
+
+  @@index([commanderId])
+  @@index([moxfieldId])
+  @@map("decks")
+}
+
+model DeckCard {
+  id              String   @id @default(cuid())
+  deckId          String   @map("deck_id")
+  cardId          String   @map("card_id")
+  quantity        Int      @default(1)
+  isCommander     Boolean  @default(false) @map("is_commander")
+  isCompanion     Boolean  @default(false) @map("is_companion")
+
+  // Relations
+  deck            Deck     @relation(fields: [deckId], references: [id], onDelete: Cascade)
+  card            Card     @relation(fields: [cardId], references: [id])
+
+  @@unique([deckId, cardId])
+  @@index([deckId])
+  @@index([cardId])
+  @@map("deck_cards")
+}
+
+model CardStat {
+  id              String   @id @default(cuid())
+  commanderId     String   @map("commander_id")
+  cardId          String   @map("card_id")
+  deckCount       Int      @default(0) @map("deck_count")
+  inclusionRate   Float?   @map("inclusion_rate")
+  synergyScore    Float?   @map("synergy_score")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  commander       Commander @relation(fields: [commanderId], references: [id], onDelete: Cascade)
+  card            Card      @relation(fields: [cardId], references: [id], onDelete: Cascade)
+
+  @@unique([commanderId, cardId])
+  @@index([commanderId])
+  @@index([cardId])
+  @@index([deckCount])
+  @@index([synergyScore])
+  @@map("card_stats")
+}
